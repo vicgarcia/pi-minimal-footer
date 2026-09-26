@@ -82,6 +82,9 @@ export default function (pi: ExtensionAPI) {
     });
   };
 
+  // Session replacement (including pi-cd's /cd) rebuilds the interactive UI.
+  // Reinstall during resource discovery as a final pass after every rebind.
   pi.on("session_start", (_event, ctx) => installFooter(ctx));
+  pi.on("resources_discover", (_event, ctx) => installFooter(ctx));
   pi.on("model_select", (_event, ctx) => installFooter(ctx));
 }
