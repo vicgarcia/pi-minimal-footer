@@ -24,8 +24,6 @@ function effectiveCwd(status: string | undefined, fallback: string): string {
 
 let cachedBranchCwd: string | undefined;
 let cachedBranch: string | undefined;
-let cachedGitHubRepoCwd: string | undefined;
-let cachedIsGitHubRepo = false;
 
 function gitBranch(cwd: string): string | undefined {
   if (cwd === cachedBranchCwd) return cachedBranch;
@@ -39,21 +37,6 @@ function gitBranch(cwd: string): string | undefined {
     cachedBranch = undefined;
   }
   return cachedBranch;
-}
-
-function isGitHubRepo(cwd: string): boolean {
-  if (cwd === cachedGitHubRepoCwd) return cachedIsGitHubRepo;
-  cachedGitHubRepoCwd = cwd;
-  try {
-    const remote = execFileSync("git", ["-C", cwd, "remote", "get-url", "origin"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    }).trim();
-    cachedIsGitHubRepo = /(?:github\.com[/:])/.test(remote);
-  } catch {
-    cachedIsGitHubRepo = false;
-  }
-  return cachedIsGitHubRepo;
 }
 
 export default function (pi: ExtensionAPI) {
@@ -74,9 +57,9 @@ export default function (pi: ExtensionAPI) {
         const statuses = footerData.getExtensionStatuses();
         const cwdStatus = statuses.get("pi-cd") ?? statuses.get("cwd");
         const cwd = effectiveCwd(cwdStatus, ctx.cwd);
-        const branch = isGitHubRepo(cwd)
-          ? (cwd === ctx.cwd ? footerData.getGitBranch() ?? undefined : gitBranch(cwd))
-          : undefined;
+        const branch = cwd === ctx.cwd
+          ? footerData.getGitBranch() ?? undefined
+          : gitBranch(cwd);
         const location = branch ? `${cwd} · ${branch}` : cwd;
         const model = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : "no model";
         // pi-quotas publishes this status asynchronously; tolerate it not being ready yet.

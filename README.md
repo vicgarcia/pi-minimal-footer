@@ -2,7 +2,7 @@
 
 A compact, responsive footer extension for [Pi Coding Agent](https://pi.dev). It shows:
 
-- current working directory and GitHub branch (when `origin` points to GitHub)
+- current working directory and Git branch (when in a Git repository)
 - selected provider/model
 - the five-hour allowance and reset time supplied by [`@latentminds/pi-quotas`](https://www.npmjs.com/package/@latentminds/pi-quotas), when installed
 
