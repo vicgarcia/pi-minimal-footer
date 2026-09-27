@@ -19,7 +19,7 @@ pi install npm:pi-minimal-footer
 ### From a Git repository
 
 ```sh
-pi install git:github.com/<owner>/pi-minimal-footer
+pi install git:github.com/vicgarcia/pi-minimal-footer
 ```
 
 ### Local development
