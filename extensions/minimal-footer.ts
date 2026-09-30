@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
@@ -22,45 +21,19 @@ function effectiveCwd(status: string | undefined, fallback: string): string {
     : path || fallback;
 }
 
-let cachedBranchCwd: string | undefined;
-let cachedBranch: string | undefined;
-
-function gitBranch(cwd: string): string | undefined {
-  if (cwd === cachedBranchCwd) return cachedBranch;
-  cachedBranchCwd = cwd;
-  try {
-    cachedBranch = execFileSync("git", ["-C", cwd, "branch", "--show-current"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    }).trim() || undefined;
-  } catch {
-    cachedBranch = undefined;
-  }
-  return cachedBranch;
-}
-
 export default function (pi: ExtensionAPI) {
   const installFooter = (ctx: any) => {
-    ctx.ui.setFooter((tui: any, theme: any, footerData: any) => {
-      // Branch discovery is asynchronous after a session switch (as used by /cd).
-      // Re-render when it completes so the footer never remains stale or blank.
-      const unsubscribeBranch = footerData.onBranchChange(() => tui.requestRender());
-
-      return {
-        dispose: unsubscribeBranch,
-        invalidate() {},
-        render(width: number): string[] {
+    ctx.ui.setFooter((_tui: any, theme: any, footerData: any) => ({
+      dispose() {},
+      invalidate() {},
+      render(width: number): string[] {
         if (width <= 0) return [];
 
         // pi-cd publishes its effective directory through this status key.
         // Support the older pi-cwd key as a fallback.
         const statuses = footerData.getExtensionStatuses();
         const cwdStatus = statuses.get("pi-cd") ?? statuses.get("cwd");
-        const cwd = effectiveCwd(cwdStatus, ctx.cwd);
-        const branch = cwd === ctx.cwd
-          ? footerData.getGitBranch() ?? undefined
-          : gitBranch(cwd);
-        const location = branch ? `${cwd} · ${branch}` : cwd;
+        const location = effectiveCwd(cwdStatus, ctx.cwd);
         const model = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : "no model";
         // pi-quotas publishes this status asynchronously; tolerate it not being ready yet.
         const quotaStatus = footerData?.getExtensionStatuses?.().get?.("pi-quotas-usage");
@@ -78,10 +51,9 @@ export default function (pi: ExtensionAPI) {
         const left = truncateToWidth(location, leftWidth);
         const padding = " ".repeat(Math.max(1, width - visibleWidth(left) - visibleWidth(right)));
 
-          return [theme.fg("muted", left + padding) + right];
-        },
-      };
-    });
+        return [theme.fg("muted", left + padding) + right];
+      },
+    }));
   };
 
   // Session replacement (including pi-cd's /cd) rebuilds the interactive UI.
